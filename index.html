@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAM Policy Analyzer</title>
+<style>
+:root {
+  --bg: #1d1f21;
+  --surface: #2a2d31;
+  --surface-2: #353940;
+  --border: #3e434b;
+  --text: #e8eaed;
+  --text-dim: #9aa0a6;
+  --amber: #ff9900;
+  --accent: #ff9900;
+  --crit: #ff5252;
+  --high: #ff8a65;
+  --med: #ffd54f;
+  --low: #81c784;
+  --info: #64b5f6;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+[data-theme="light"] {
+  --bg: #f5f5f0;
+  --surface: #ffffff;
+  --surface-2: #ebeae3;
+  --border: #d3d0c4;
+  --text: #232f3e;
+  --text-dim: #545b64;
+  --amber: #d97706;
+  --accent: #d97706;
+  --crit: #b71c1c;
+  --high: #d84315;
+  --med: #b58900;
+  --low: #2e7d32;
+  --info: #1565c0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  padding: 24px;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1200px;
+  margin: 0 auto 24px;
+  gap: 16px;
+}
+h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.subtitle { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+.theme-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.theme-btn:hover { border-color: var(--amber); }
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+}
+h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 10px; }
+textarea {
+  width: 100%;
+  min-height: 360px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+textarea:focus { outline: none; border-color: var(--amber); }
+.actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+button {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--mono);
+}
+button:hover { border-color: var(--amber); }
+button.primary { background: var(--amber); color: #1d1f21; border-color: var(--amber); font-weight: 600; }
+[data-theme="light"] button.primary { color: #ffffff; }
+button.primary:hover { filter: brightness(1.1); }
+.results { min-height: 360px; max-height: 600px; overflow-y: auto; }
+.results-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
+.summary { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tag { font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.tag.crit { background: rgba(255, 82, 82, 0.15); color: var(--crit); }
+.tag.high { background: rgba(255, 138, 101, 0.15); color: var(--high); }
+.tag.med { background: rgba(255, 213, 79, 0.15); color: var(--med); }
+.tag.low { background: rgba(129, 199, 132, 0.15); color: var(--low); }
+.tag.info { background: rgba(100, 181, 246, 0.15); color: var(--info); }
+.finding {
+  border-left: 3px solid var(--border);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--surface-2);
+  border-radius: 0 4px 4px 0;
+}
+.finding.crit { border-left-color: var(--crit); }
+.finding.high { border-left-color: var(--high); }
+.finding.med { border-left-color: var(--med); }
+.finding.low { border-left-color: var(--low); }
+.finding.info { border-left-color: var(--info); }
+.finding-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.finding-title { font-weight: 600; font-size: 13px; }
+.finding-detail { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.finding-fix { font-size: 12px; color: var(--text); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+.finding-fix strong { color: var(--amber); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+code { font-family: var(--mono); background: var(--bg); padding: 1px 4px; border-radius: 2px; font-size: 11px; word-break: break-all; }
+footer { max-width: 1200px; margin: 24px auto 0; text-align: center; font-size: 11px; color: var(--text-dim); }
+.error-box { background: rgba(255, 82, 82, 0.08); border: 1px solid var(--crit); color: var(--crit); padding: 10px 12px; border-radius: 4px; font-size: 12px; font-family: var(--mono); margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>IAM Policy Analyzer</h1>
+    <div class="subtitle">Static analysis of AWS IAM policy JSON. Browser-only.</div>
+  </div>
+  <button class="theme-btn" id="theme-btn">light</button>
+</header>
+<main>
+  <section class="panel">
+    <h2>Policy JSON</h2>
+    <textarea id="input" placeholder="Paste IAM policy JSON. Identity-based, resource-based, or trust policy."></textarea>
+    <div class="actions">
+      <button class="primary" id="analyze">Analyze</button>
+      <button id="sample-1">Sample: over-broad</button>
+      <button id="sample-2">Sample: privilege escalation</button>
+      <button id="sample-3">Sample: trust policy</button>
+      <button id="clear">Clear</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Findings</h2>
+    <div id="results" class="results">
+      <div class="results-empty">Paste a policy and click Analyze.</div>
+    </div>
+  </section>
+</main>
+<footer>Static analysis. Pattern-based. Run on your own machine. No data leaves the browser.</footer>
+<script>
+(function() {
+  const $ = id => document.getElementById(id);
+  const themeBtn = $('theme-btn');
+  themeBtn.addEventListener('click', () => {
+    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? 'light' : 'dark';
+  });
+
+  const ESCALATION_ACTIONS = {
+    'iam:PassRole': { sev: 'crit', why: 'Combined with compute actions (lambda:CreateFunction, ec2:RunInstances), executes code as the passed role.' },
+    'iam:CreateAccessKey': { sev: 'crit', why: 'Persistent credential creation for any user.' },
+    'iam:UpdateAssumeRolePolicy': { sev: 'crit', why: 'Trust policy hijacking — attacker rewrites who can assume the role.' },
+    'iam:PutUserPolicy': { sev: 'crit', why: 'Inline policy injection — attacker grants themselves anything.' },
+    'iam:PutRolePolicy': { sev: 'crit', why: 'Inline policy injection on roles.' },
+    'iam:AttachUserPolicy': { sev: 'crit', why: 'Attach a managed policy (e.g., AdministratorAccess) to escalate.' },
+    'iam:AttachRolePolicy': { sev: 'crit', why: 'Attach managed policy to a role to escalate.' },
+    'iam:CreatePolicyVersion': { sev: 'crit', why: 'Create a new policy version and set it as default.' },
+    'iam:SetDefaultPolicyVersion': { sev: 'high', why: 'Switch to a more permissive policy version.' },
+    'lambda:UpdateFunctionCode': { sev: 'crit', why: 'Replace function code; runs as function role.' },
+    'lambda:CreateFunction': { sev: 'high', why: 'Create new function with iam:PassRole — code execution as that role.' },
+    'lambda:InvokeFunction': { sev: 'med', why: 'Trigger arbitrary functions (data access via function role).' },
+    'ec2:RunInstances': { sev: 'high', why: 'Launch EC2 with attached IAM role — instance metadata gives credentials.' },
+    'cloudformation:CreateStack': { sev: 'crit', why: 'Templates can create any AWS resource — full account capability.' },
+    'cloudformation:UpdateStack': { sev: 'crit', why: 'Stack updates can grant arbitrary permissions.' },
+    'sts:AssumeRole': { sev: 'med', why: 'Role assumption. Resource scope and trust policy of target are critical.' },
+    'kms:Decrypt': { sev: 'med', why: 'Without resource scope, decrypts anything the role has key policy access to.' },
+    'secretsmanager:GetSecretValue': { sev: 'high', why: 'Direct credential exposure.' },
+    'ssm:GetParameter': { sev: 'med', why: 'Parameter Store often holds secrets.' },
+    'ssm:GetParameters': { sev: 'med', why: 'Bulk parameter retrieval.' },
+    's3:GetObject': { sev: 'low', why: 'Resource scope critical; with "*" reads all bucket data.' },
+    'glue:UpdateJob': { sev: 'high', why: 'Glue jobs run with passed role — code execution path.' },
+    'sagemaker:CreateNotebookInstance': { sev: 'high', why: 'Notebook gets attached role — interactive credential access.' }
+  };
+
+  const SAMPLES = {
+    1: {
+      "Version": "2012-10-17",
+      "Statement": [
+        { "Effect": "Allow", "Action": "*", "Resource": "*" },
+        { "Effect": "Allow", "Action": "s3:*", "Resource": "*" },
+        { "Effect": "Allow", "NotAction": "iam:*", "Resource": "*" }
+      ]
+    },
+    2: {
+      "Version": "2012-10-17",
+      "Statement": [
+        { "Effect": "Allow", "Action": ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"], "Resource": "*" },
+        { "Effect": "Allow", "Action": "iam:AttachUserPolicy", "Resource": "*" },
+        { "Effect": "Allow", "Action": ["secretsmanager:GetSecretValue", "kms:Decrypt"], "Resource": "*" }
+      ]
+    },
+    3: {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": "*",
+          "Action": "sts:AssumeRole"
+        },
+        {
+          "Effect": "Allow",
+          "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+  };
+
+  $('sample-1').addEventListener('click', () => $('input').value = JSON.stringify(SAMPLES[1], null, 2));
+  $('sample-2').addEventListener('click', () => $('input').value = JSON.stringify(SAMPLES[2], null, 2));
+  $('sample-3').addEventListener('click', () => $('input').value = JSON.stringify(SAMPLES[3], null, 2));
+  $('clear').addEventListener('click', () => { $('input').value = ''; $('results').innerHTML = '<div class="results-empty">Paste a policy and click Analyze.</div>'; });
+  $('analyze').addEventListener('click', analyze);
+
+  function analyze() {
+    const raw = $('input').value.trim();
+    if (!raw) {
+      $('results').innerHTML = '<div class="results-empty">No policy provided.</div>';
+      return;
+    }
+    let policy;
+    try {
+      policy = JSON.parse(raw);
+    } catch (e) {
+      $('results').innerHTML = '<div class="error-box">JSON parse error: ' + escapeHtml(e.message) + '</div>';
+      return;
+    }
+    const findings = [];
+    if (!policy.Version) {
+      findings.push({ sev: 'low', title: 'No policy Version', detail: 'Defaults to 2008-10-17 (legacy). Modern features require 2012-10-17.', fix: 'Add "Version": "2012-10-17".' });
+    } else if (policy.Version !== '2012-10-17') {
+      findings.push({ sev: 'med', title: 'Old policy Version', detail: 'Version is ' + policy.Version + '. Current is 2012-10-17. Some condition operators are unavailable in older versions.', fix: 'Update to "Version": "2012-10-17".' });
+    }
+    const stmts = Array.isArray(policy.Statement) ? policy.Statement : (policy.Statement ? [policy.Statement] : []);
+    if (!stmts.length) {
+      findings.push({ sev: 'med', title: 'No Statement array', detail: 'Policy has no Statement element.', fix: 'Add a Statement array with at least one statement.' });
+    }
+    stmts.forEach((s, i) => analyzeStatement(s, i, findings));
+    if (findings.length === 0) {
+      findings.push({ sev: 'info', title: 'No issues found by static analysis', detail: 'Pattern-based check found no flagged constructs. Not a guarantee. Review manually for business-logic issues, IAM Access Analyzer findings, and last-used data.', fix: '' });
+    }
+    render(findings);
+  }
+
+  function analyzeStatement(s, idx, findings) {
+    const sid = s.Sid || ('Statement[' + idx + ']');
+    if (s.Effect !== 'Allow' && s.Effect !== 'Deny') {
+      findings.push({ sev: 'high', title: sid + ': missing or invalid Effect', detail: 'Effect must be "Allow" or "Deny".', fix: 'Set Effect explicitly.' });
+      return;
+    }
+    if (s.Effect === 'Deny') return;
+    const actions = toArr(s.Action);
+    const notActions = toArr(s.NotAction);
+    const resources = toArr(s.Resource);
+    const notResources = toArr(s.NotResource);
+    if (notActions.length) {
+      findings.push({ sev: 'high', title: sid + ': uses NotAction with Allow', detail: 'NotAction grants every action EXCEPT those listed. Almost always overly broad — adds new AWS actions automatically.', fix: 'Use Action with explicit list. NotAction is appropriate only with Deny.' });
+    }
+    if (notResources.length) {
+      findings.push({ sev: 'high', title: sid + ': uses NotResource with Allow', detail: 'NotResource grants access to every resource except those listed. Same problem as NotAction.', fix: 'Use Resource with explicit ARNs.' });
+    }
+    if (actions.includes('*') || actions.includes('"*"')) {
+      findings.push({ sev: 'crit', title: sid + ': Action "*" with Allow', detail: 'Grants every AWS API action. Combined with Resource "*", this is administrator equivalent.', fix: 'List specific actions. Use IAM Access Analyzer to identify minimum needed set from CloudTrail.' });
+    }
+    actions.forEach(a => {
+      if (a === '*') return;
+      if (a.endsWith(':*')) {
+        const sev = ['iam','sts','kms','secretsmanager','ssm','organizations','cloudformation'].includes(a.split(':')[0]) ? 'high' : 'med';
+        findings.push({ sev: sev, title: sid + ': service wildcard ' + a, detail: 'Grants every action in the ' + a.split(':')[0] + ' service. New actions added by AWS apply automatically.', fix: 'Enumerate the specific actions needed.' });
+      }
+      if (ESCALATION_ACTIONS[a]) {
+        const e = ESCALATION_ACTIONS[a];
+        const noScope = resources.includes('*');
+        const sev = noScope && e.sev === 'crit' ? 'crit' : (noScope ? e.sev : (e.sev === 'crit' ? 'high' : e.sev));
+        findings.push({ sev: sev, title: sid + ': privilege-escalation action ' + a + (noScope ? ' on Resource "*"' : ''), detail: e.why + (noScope ? ' Resource scope is "*" — applies to every resource.' : ' Resource scope: ' + resources.join(', ')), fix: 'Scope Resource to specific ARN(s). Add Conditions (e.g., aws:RequestedRegion, aws:ResourceTag) where applicable. For PassRole, scope to specific role ARN and add iam:PassedToService condition.' });
+      }
+    });
+    if (resources.includes('*') && !s.Condition) {
+      const hasSensitive = actions.some(a => a === '*' || a.includes(':*') || /^(iam|sts|kms|secretsmanager|cloudformation|s3|ec2|lambda):/.test(a));
+      if (hasSensitive) {
+        findings.push({ sev: 'high', title: sid + ': Resource "*" with no Condition', detail: 'Sensitive actions on Resource "*" with no Condition block. Cannot be scoped at runtime.', fix: 'Either narrow Resource ARNs or add Conditions like aws:PrincipalTag, aws:ResourceTag, aws:RequestedRegion, aws:SourceVpc, aws:SourceIp.' });
+      }
+    }
+    if (s.Principal !== undefined) analyzeTrust(s, sid, findings);
+  }
+
+  function analyzeTrust(s, sid, findings) {
+    const p = s.Principal;
+    const cond = s.Condition || {};
+    if (p === '*' || p === { "AWS": "*" } || (p && p.AWS === '*')) {
+      findings.push({ sev: 'crit', title: sid + ': Principal "*" (anyone can assume)', detail: 'Trust policy with Principal "*" — any AWS account or anonymous can assume this role unless tightly conditioned.', fix: 'Specify exact account ARN(s). If cross-account is intentional, use aws:PrincipalArn or aws:PrincipalOrgID condition.' });
+    }
+    if (p && p.AWS) {
+      const arns = toArr(p.AWS);
+      arns.forEach(arn => {
+        if (/^\d{12}$/.test(arn) || /:root$/.test(arn)) {
+          findings.push({ sev: 'med', title: sid + ': Principal is account root', detail: 'Trusts any IAM user/role in account ' + arn + '. Acceptable for cross-account, but very broad.', fix: 'If cross-account, scope to specific role ARNs and add sts:ExternalId condition. If same-account, scope to specific principal.' });
+        }
+      });
+    }
+    const isAssumeRole = toArr(s.Action).some(a => a.startsWith('sts:AssumeRole'));
+    if (isAssumeRole) {
+      const flat = JSON.stringify(cond).toLowerCase();
+      const isCrossAccount = p && p.AWS && toArr(p.AWS).some(a => /^\d{12}$/.test(a) || /:root$/.test(a) || (/^arn:aws:iam::(\d{12}):/.test(a) && false));
+      if (!flat.includes('externalid') && !flat.includes('mfa') && !flat.includes('aws:principalorgid') && !flat.includes('aws:sourceaccount')) {
+        findings.push({ sev: 'high', title: sid + ': sts:AssumeRole with no Condition controls', detail: 'Cross-account trust without sts:ExternalId, MFA condition, or aws:PrincipalOrgID. Confused-deputy risk.', fix: 'Add Condition with sts:ExternalId for vendor-style cross-account, or aws:PrincipalOrgID for org-internal roles. Add aws:MultiFactorAuthPresent: true for human roles.' });
+      }
+      if (p && (p.Service === 'ec2.amazonaws.com' || (Array.isArray(p.Service) && p.Service.includes('ec2.amazonaws.com'))) && !flat.includes('aws:sourcearn') && !flat.includes('aws:sourceaccount')) {
+        findings.push({ sev: 'med', title: sid + ': service-principal trust without source condition', detail: 'Service principals can be subject to confused-deputy without aws:SourceArn / aws:SourceAccount.', fix: 'Add Condition StringEquals { aws:SourceAccount: "<account-id>" }.' });
+      }
+    }
+  }
+
+  function toArr(v) { if (v === undefined || v === null) return []; return Array.isArray(v) ? v : [v]; }
+
+  function render(findings) {
+    const r = $('results');
+    const counts = { crit: 0, high: 0, med: 0, low: 0, info: 0 };
+    findings.forEach(f => counts[f.sev] = (counts[f.sev] || 0) + 1);
+    let html = '<div class="summary">';
+    ['crit','high','med','low','info'].forEach(k => {
+      if (counts[k]) html += '<span class="tag ' + k + '">' + counts[k] + ' ' + (k === 'crit' ? 'critical' : k === 'high' ? 'high' : k === 'med' ? 'medium' : k === 'low' ? 'low' : 'info') + '</span>';
+    });
+    html += '</div>';
+    findings.forEach(f => {
+      html += '<div class="finding ' + f.sev + '">';
+      html += '<div class="finding-head"><span class="finding-title">' + escapeHtml(f.title) + '</span><span class="tag ' + f.sev + '">' + f.sev + '</span></div>';
+      html += '<div class="finding-detail">' + escapeHtml(f.detail) + '</div>';
+      if (f.fix) html += '<div class="finding-fix"><strong>Fix:</strong> ' + escapeHtml(f.fix) + '</div>';
+      html += '</div>';
+    });
+    r.innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+})();
+</script>
+</body>
+</html>
