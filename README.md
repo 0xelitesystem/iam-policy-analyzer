@@ -2,15 +2,17 @@
 
 Browser-based analyzer for AWS IAM policies. Paste a policy document, get back a list of findings: privilege escalation paths, overly broad grants, missing conditions, and trust policy issues.
 
+**Live demo:** https://0xelitesystem.github.io/iam-policy-analyzer/
+
 Single HTML file. No build step, no dependencies, no network calls. Open `index.html` or use the hosted version.
 
 ## What it checks
 
-- **Privilege escalation actions** — `iam:PassRole`, `iam:CreateAccessKey`, `lambda:UpdateFunctionCode`, `ec2:RunInstances`, `cloudformation:CreateStack`, and 30+ other actions known to enable lateral movement when granted on `Resource: *`.
-- **Wildcards** — `Action: "*"`, `Resource: "*"`, and service-level wildcards like `s3:*` flagged with severity scaled by the action's blast radius.
-- **Missing conditions** — Sensitive actions granted without `aws:SourceIp`, `aws:MultiFactorAuthPresent`, `aws:SecureTransport`, or `aws:PrincipalOrgID` constraints.
-- **Trust policies** — `Principal: "*"` in trust documents, missing `aws:SourceAccount` / `aws:SourceArn` on cross-account roles, and confused-deputy patterns.
-- **NotAction / NotResource** — Flagged because they allow more than they appear to.
+- **Privilege escalation actions**, `iam:PassRole`, `iam:CreateAccessKey`, `lambda:UpdateFunctionCode`, `ec2:RunInstances`, `cloudformation:CreateStack`, and 30+ other actions known to enable lateral movement when granted on `Resource: *`.
+- **Wildcards**, `Action: "*"`, `Resource: "*"`, and service-level wildcards like `s3:*` flagged with severity scaled by the action's blast radius.
+- **Missing conditions**, Sensitive actions granted without `aws:SourceIp`, `aws:MultiFactorAuthPresent`, `aws:SecureTransport`, or `aws:PrincipalOrgID` constraints.
+- **Trust policies**, `Principal: "*"` in trust documents, missing `aws:SourceAccount` / `aws:SourceArn` on cross-account roles, and confused-deputy patterns.
+- **NotAction / NotResource**, Flagged because they allow more than they appear to.
 
 ## Severity scale
 
