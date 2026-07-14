@@ -185,18 +185,18 @@ footer { max-width: 1200px; margin: 24px auto 0; text-align: center; font-size: 
   const ESCALATION_ACTIONS = {
     'iam:PassRole': { sev: 'crit', why: 'Combined with compute actions (lambda:CreateFunction, ec2:RunInstances), executes code as the passed role.' },
     'iam:CreateAccessKey': { sev: 'crit', why: 'Persistent credential creation for any user.' },
-    'iam:UpdateAssumeRolePolicy': { sev: 'crit', why: 'Trust policy hijacking — attacker rewrites who can assume the role.' },
-    'iam:PutUserPolicy': { sev: 'crit', why: 'Inline policy injection — attacker grants themselves anything.' },
+    'iam:UpdateAssumeRolePolicy': { sev: 'crit', why: 'Trust policy hijacking, attacker rewrites who can assume the role.' },
+    'iam:PutUserPolicy': { sev: 'crit', why: 'Inline policy injection, attacker grants themselves anything.' },
     'iam:PutRolePolicy': { sev: 'crit', why: 'Inline policy injection on roles.' },
     'iam:AttachUserPolicy': { sev: 'crit', why: 'Attach a managed policy (e.g., AdministratorAccess) to escalate.' },
     'iam:AttachRolePolicy': { sev: 'crit', why: 'Attach managed policy to a role to escalate.' },
     'iam:CreatePolicyVersion': { sev: 'crit', why: 'Create a new policy version and set it as default.' },
     'iam:SetDefaultPolicyVersion': { sev: 'high', why: 'Switch to a more permissive policy version.' },
     'lambda:UpdateFunctionCode': { sev: 'crit', why: 'Replace function code; runs as function role.' },
-    'lambda:CreateFunction': { sev: 'high', why: 'Create new function with iam:PassRole — code execution as that role.' },
+    'lambda:CreateFunction': { sev: 'high', why: 'Create new function with iam:PassRole, code execution as that role.' },
     'lambda:InvokeFunction': { sev: 'med', why: 'Trigger arbitrary functions (data access via function role).' },
-    'ec2:RunInstances': { sev: 'high', why: 'Launch EC2 with attached IAM role — instance metadata gives credentials.' },
-    'cloudformation:CreateStack': { sev: 'crit', why: 'Templates can create any AWS resource — full account capability.' },
+    'ec2:RunInstances': { sev: 'high', why: 'Launch EC2 with attached IAM role, instance metadata gives credentials.' },
+    'cloudformation:CreateStack': { sev: 'crit', why: 'Templates can create any AWS resource, full account capability.' },
     'cloudformation:UpdateStack': { sev: 'crit', why: 'Stack updates can grant arbitrary permissions.' },
     'sts:AssumeRole': { sev: 'med', why: 'Role assumption. Resource scope and trust policy of target are critical.' },
     'kms:Decrypt': { sev: 'med', why: 'Without resource scope, decrypts anything the role has key policy access to.' },
@@ -204,8 +204,8 @@ footer { max-width: 1200px; margin: 24px auto 0; text-align: center; font-size: 
     'ssm:GetParameter': { sev: 'med', why: 'Parameter Store often holds secrets.' },
     'ssm:GetParameters': { sev: 'med', why: 'Bulk parameter retrieval.' },
     's3:GetObject': { sev: 'low', why: 'Resource scope critical; with "*" reads all bucket data.' },
-    'glue:UpdateJob': { sev: 'high', why: 'Glue jobs run with passed role — code execution path.' },
-    'sagemaker:CreateNotebookInstance': { sev: 'high', why: 'Notebook gets attached role — interactive credential access.' }
+    'glue:UpdateJob': { sev: 'high', why: 'Glue jobs run with passed role, code execution path.' },
+    'sagemaker:CreateNotebookInstance': { sev: 'high', why: 'Notebook gets attached role, interactive credential access.' }
   };
 
   const SAMPLES = {
@@ -290,7 +290,7 @@ footer { max-width: 1200px; margin: 24px auto 0; text-align: center; font-size: 
     const resources = toArr(s.Resource);
     const notResources = toArr(s.NotResource);
     if (notActions.length) {
-      findings.push({ sev: 'high', title: sid + ': uses NotAction with Allow', detail: 'NotAction grants every action EXCEPT those listed. Almost always overly broad — adds new AWS actions automatically.', fix: 'Use Action with explicit list. NotAction is appropriate only with Deny.' });
+      findings.push({ sev: 'high', title: sid + ': uses NotAction with Allow', detail: 'NotAction grants every action EXCEPT those listed. Almost always overly broad, adds new AWS actions automatically.', fix: 'Use Action with explicit list. NotAction is appropriate only with Deny.' });
     }
     if (notResources.length) {
       findings.push({ sev: 'high', title: sid + ': uses NotResource with Allow', detail: 'NotResource grants access to every resource except those listed. Same problem as NotAction.', fix: 'Use Resource with explicit ARNs.' });
@@ -308,7 +308,7 @@ footer { max-width: 1200px; margin: 24px auto 0; text-align: center; font-size: 
         const e = ESCALATION_ACTIONS[a];
         const noScope = resources.includes('*');
         const sev = noScope && e.sev === 'crit' ? 'crit' : (noScope ? e.sev : (e.sev === 'crit' ? 'high' : e.sev));
-        findings.push({ sev: sev, title: sid + ': privilege-escalation action ' + a + (noScope ? ' on Resource "*"' : ''), detail: e.why + (noScope ? ' Resource scope is "*" — applies to every resource.' : ' Resource scope: ' + resources.join(', ')), fix: 'Scope Resource to specific ARN(s). Add Conditions (e.g., aws:RequestedRegion, aws:ResourceTag) where applicable. For PassRole, scope to specific role ARN and add iam:PassedToService condition.' });
+        findings.push({ sev: sev, title: sid + ': privilege-escalation action ' + a + (noScope ? ' on Resource "*"' : ''), detail: e.why + (noScope ? ' Resource scope is "*", applies to every resource.' : ' Resource scope: ' + resources.join(', ')), fix: 'Scope Resource to specific ARN(s). Add Conditions (e.g., aws:RequestedRegion, aws:ResourceTag) where applicable. For PassRole, scope to specific role ARN and add iam:PassedToService condition.' });
       }
     });
     if (resources.includes('*') && !s.Condition) {
@@ -324,7 +324,7 @@ footer { max-width: 1200px; margin: 24px auto 0; text-align: center; font-size: 
     const p = s.Principal;
     const cond = s.Condition || {};
     if (p === '*' || p === { "AWS": "*" } || (p && p.AWS === '*')) {
-      findings.push({ sev: 'crit', title: sid + ': Principal "*" (anyone can assume)', detail: 'Trust policy with Principal "*" — any AWS account or anonymous can assume this role unless tightly conditioned.', fix: 'Specify exact account ARN(s). If cross-account is intentional, use aws:PrincipalArn or aws:PrincipalOrgID condition.' });
+      findings.push({ sev: 'crit', title: sid + ': Principal "*" (anyone can assume)', detail: 'Trust policy with Principal "*", any AWS account or anonymous can assume this role unless tightly conditioned.', fix: 'Specify exact account ARN(s). If cross-account is intentional, use aws:PrincipalArn or aws:PrincipalOrgID condition.' });
     }
     if (p && p.AWS) {
       const arns = toArr(p.AWS);
