@@ -6,6 +6,17 @@ Browser-based analyzer for AWS IAM policies. Paste a policy document, get back a
 
 Single HTML file. No build step, no dependencies, no network calls. Open `index.html` or use the hosted version.
 
+## Use
+
+1. Paste an IAM policy or trust policy JSON document, or click one of the Sample buttons.
+2. Click **Analyze**.
+3. Work through the findings by severity, from critical down to info.
+4. Fix the policy and run it again until the findings you care about are gone.
+
+## Why this exists
+
+IAM policies are easy to over-grant and hard to review in a pull request. This tool applies a static rule set to the JSON you paste and flags escalation paths, wildcards, and missing conditions. It is one HTML file with inline CSS and JavaScript: no account, no tracking, no analytics, no external scripts or fonts, and it works offline. MIT licensed, so you can fork it, self-host it, or read every line.
+
 ## What it checks
 
 - **Privilege escalation actions**, `iam:PassRole`, `iam:CreateAccessKey`, `lambda:UpdateFunctionCode`, `ec2:RunInstances`, `cloudformation:CreateStack`, and 30+ other actions known to enable lateral movement when granted on `Resource: *`.
@@ -30,7 +41,20 @@ Not a replacement for AWS Access Analyzer or Cloudsplaining. It does not simulat
 
 ## Privacy
 
-Everything runs in the browser. The policy you paste never leaves the page. No analytics, no storage, no network requests after page load.
+Everything runs in the browser. The policy you paste never leaves the page. No analytics, no network requests after page load, and the policy is never stored. The only thing written to storage is your light or dark theme choice, saved in localStorage under the key `theme`.
+
+## Run locally
+
+```bash
+git clone https://github.com/0xelitesystem/iam-policy-analyzer
+cd iam-policy-analyzer
+```
+
+Then open `index.html` in any modern browser. Or serve the folder with `python -m http.server 8000` and visit http://localhost:8000.
+
+## Build
+
+No build step. The whole tool is one `index.html` with no dependencies, so there is nothing to install or compile.
 
 ## Samples
 
