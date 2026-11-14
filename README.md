@@ -65,7 +65,7 @@ Three sample policies are loaded via the buttons in the header: a privilege-esca
 Part of a 10-repo security audit set.
 
 Browser-based audit tools:
-- [terraform-security-linter](https://github.com/0xelitesystem/terraform-security-linter)
+- [hcl-aws-misconfig-linter](https://github.com/0xelitesystem/hcl-aws-misconfig-linter)
 - [kubernetes-manifest-security-scanner](https://github.com/0xelitesystem/kubernetes-manifest-security-scanner)
 - [session-cookie-auditor](https://github.com/0xelitesystem/session-cookie-auditor)
 - [regex-redos-checker](https://github.com/0xelitesystem/regex-redos-checker)
